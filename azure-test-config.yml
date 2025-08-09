@@ -1,0 +1,29 @@
+# Test configuration for Azure DevOps
+provider:
+  type: azure-devops
+  # Note: organization and project will be auto-detected from git remote
+  # You can override them here if needed:
+  # organization: your-org
+  # project: your-project
+  # baseUrl: https://dev.azure.com
+
+prSections:
+  - title: My Pull Requests
+    filters: "createdBy:@me status:active"
+  - title: Active PRs
+    filters: "status:active"
+
+issuesSections:
+  - title: My Work Items
+    filters: "assignedTo:@me state:Active"
+
+defaults:
+  preview:
+    open: true
+    width: 50
+  prsLimit: 20
+  issuesLimit: 20
+  view: prs
+
+confirmQuit: false
+showAuthorIcons: true

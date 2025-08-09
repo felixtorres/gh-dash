@@ -236,6 +236,12 @@ type PullRequestsResponse struct {
 var client *gh.GraphQLClient
 
 func FetchPullRequests(query string, limit int, pageInfo *PageInfo) (PullRequestsResponse, error) {
+	// Try using the provider system first
+	if response, err := FetchPullRequestsWithProvider(query, limit, pageInfo); err == nil {
+		return response, nil
+	}
+
+	// Fallback to original GitHub implementation
 	var err error
 	if client == nil {
 		if config.IsFeatureEnabled(config.FF_MOCK_DATA) {
@@ -292,6 +298,12 @@ func FetchPullRequests(query string, limit int, pageInfo *PageInfo) (PullRequest
 }
 
 func FetchPullRequest(prUrl string) (PullRequestData, error) {
+	// Try using the provider system first
+	if response, err := FetchPullRequestWithProvider(prUrl); err == nil {
+		return response, nil
+	}
+
+	// Fallback to original GitHub implementation
 	var err error
 	client, err := gh.DefaultGraphQLClient()
 

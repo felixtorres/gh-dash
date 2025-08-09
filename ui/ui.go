@@ -128,6 +128,12 @@ func (m *Model) initScreen() tea.Msg {
 		return initMsg{Config: cfg}
 	}
 
+	// Initialize providers after config is loaded
+	if err := data.InitProviders(&cfg, m.ctx.RepoPath); err != nil {
+		log.Debug("Failed to initialize providers", "error", err)
+		// Don't fail here, just log the error and continue with GitHub default
+	}
+
 	var url string
 	if config.IsFeatureEnabled(config.FF_REPO_VIEW) && m.ctx.RepoPath != "" {
 		res, err := git.GetOriginUrl(m.ctx.RepoPath)

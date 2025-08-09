@@ -220,6 +220,14 @@ type ThemeConfig struct {
 	Icons  *IconThemeConfig  `yaml:"icons,omitempty" validate:"omitempty"`
 }
 
+type ProviderConfig struct {
+	Type         string `yaml:"type"`
+	Organization string `yaml:"organization,omitempty"`
+	Project      string `yaml:"project,omitempty"`
+	BaseURL      string `yaml:"baseUrl,omitempty"`
+	Token        string `yaml:"token,omitempty"`
+}
+
 type Config struct {
 	PRSections             []PrsSectionConfig    `yaml:"prSections"`
 	IssuesSections         []IssuesSectionConfig `yaml:"issuesSections"`
@@ -232,6 +240,7 @@ type Config struct {
 	ConfirmQuit            bool                  `yaml:"confirmQuit"`
 	ShowAuthorIcons        bool                  `yaml:"showAuthorIcons"`
 	SmartFilteringAtLaunch bool                  `yaml:"smartFilteringAtLaunch" default:"true"`
+	Provider               *ProviderConfig       `yaml:"provider,omitempty"`
 }
 
 type configError struct {

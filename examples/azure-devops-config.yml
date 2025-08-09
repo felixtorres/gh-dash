@@ -1,0 +1,57 @@
+# Example configuration for Azure DevOps support
+# This file demonstrates how to configure gh-dash to work with Azure DevOps
+
+# Provider configuration - specify Azure DevOps
+provider:
+  type: azure-devops
+  organization: myorganization  # Your Azure DevOps organization
+  project: myproject           # Your project name
+  baseUrl: https://dev.azure.com  # Can be omitted for dev.azure.com
+  # token: your-personal-access-token  # Optional, can use AZURE_DEVOPS_TOKEN env var instead
+
+# Pull Request sections - these work with Azure DevOps pull requests
+prSections:
+  - title: My Pull Requests
+    filters: "createdBy:@me status:active"  # Azure DevOps filters
+  - title: Needs My Review
+    filters: "reviewer:@me status:active"
+  - title: All Active PRs
+    filters: "status:active"
+
+# Work Items sections - Azure DevOps work items are treated as issues
+issuesSections:
+  - title: My Work Items
+    filters: "assignedTo:@me state:Active"
+  - title: Bugs
+    filters: "workItemType:Bug state:Active"
+  - title: User Stories
+    filters: "workItemType:User Story state:Active"
+
+# Default settings
+defaults:
+  preview:
+    open: true
+    width: 50
+  prsLimit: 20
+  issuesLimit: 20
+  view: prs
+  refetchIntervalMinutes: 30
+
+# Theme and UI settings work the same
+theme:
+  ui:
+    sectionsShowCount: true
+    table:
+      showSeparator: true
+      compact: false
+
+confirmQuit: false
+showAuthorIcons: true
+smartFilteringAtLaunch: true
+
+# Note: Set your Personal Access Token as an environment variable:
+# export AZURE_DEVOPS_TOKEN="your-pat-here"
+# 
+# Or alternatively, you can set it in the config (not recommended for security):
+# provider:
+#   token: your-personal-access-token

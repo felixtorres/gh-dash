@@ -189,7 +189,45 @@ func GetRepoInPwd() (*gitm.Repository, error) {
 }
 
 func GetRepoShortName(url string) string {
-	r, _ := strings.CutPrefix(url, "https://github.com/")
-	r, _ = strings.CutSuffix(r, ".git")
-	return r
+	// Handle GitHub URLs
+	if strings.Contains(url, "github.com") {
+		r, _ := strings.CutPrefix(url, "https://github.com/")
+		r, _ = strings.CutSuffix(r, ".git")
+		return r
+	}
+	
+	// Handle Azure DevOps URLs
+	if strings.Contains(url, "dev.azure.com") {
+		// https://dev.azure.com/{organization}/{project}/_git/{repository}
+		parts := strings.Split(url, "/")
+		if len(parts) >= 6 && parts[len(parts)-2] == "_git" {
+			org := parts[3]
+			project := parts[4]
+			repo := strings.TrimSuffix(parts[len(parts)-1], ".git")
+			return fmt.Sprintf("%s/%s/%s", org, project, repo)
+		}
+	}
+	
+	if strings.Contains(url, "visualstudio.com") {
+		// https://{organization}.visualstudio.com/{project}/_git/{repository}
+		parts := strings.Split(url, "/")
+		if len(parts) >= 5 && parts[len(parts)-2] == "_git" {
+			orgParts := strings.Split(parts[2], ".")
+			if len(orgParts) > 0 {
+				org := orgParts[0]
+				project := parts[3]
+				repo := strings.TrimSuffix(parts[len(parts)-1], ".git")
+				return fmt.Sprintf("%s/%s/%s", org, project, repo)
+			}
+		}
+	}
+	
+	// Fallback - try to extract some meaningful name
+	r, _ := strings.CutSuffix(url, ".git")
+	parts := strings.Split(r, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	
+	return url
 }

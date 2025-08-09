@@ -93,6 +93,12 @@ func makeIssuesQuery(query string) string {
 }
 
 func FetchIssues(query string, limit int, pageInfo *PageInfo) (IssuesResponse, error) {
+	// Try using the provider system first
+	if response, err := FetchIssuesWithProvider(query, limit, pageInfo); err == nil {
+		return response, nil
+	}
+
+	// Fallback to original GitHub implementation
 	var err error
 	client, err := gh.DefaultGraphQLClient()
 	if err != nil {
