@@ -36,16 +36,52 @@ func (m *Model) watchChecks() tea.Cmd {
 	}
 	startCmd := m.Ctx.StartTask(task)
 	return tea.Batch(startCmd, func() tea.Msg {
-		c := exec.Command(
-			"gh",
-			"pr",
-			"checks",
-			"--watch",
-			"--fail-fast",
-			fmt.Sprint(m.GetCurrRow().GetNumber()),
-			"-R",
-			m.GetCurrRow().GetRepoNameWithOwner(),
-		)
+		// Get the current provider and use provider-specific watch checks command
+		provider := data.GetCurrentProvider()
+		var c *exec.Cmd
+		
+		if provider != nil {
+			// Use provider-specific command
+			args, cmdErr := provider.GetWatchChecksCommand(prNumber, repoNameWithOwner)
+			if cmdErr != nil {
+				return constants.TaskFinishedMsg{
+					SectionId:   m.Id,
+					SectionType: SectionType,
+					TaskId:      taskId,
+					Err:         cmdErr,
+					Msg: tasks.UpdatePRMsg{PrNumber: prNumber},
+				}
+			}
+			
+			if len(args) == 0 {
+				return constants.TaskFinishedMsg{
+					SectionId:   m.Id,
+					SectionType: SectionType,
+					TaskId:      taskId,
+					Err:         fmt.Errorf("watch checks command not available for this provider"),
+					Msg:         tasks.UpdatePRMsg{PrNumber: prNumber},
+				}
+			}
+			
+			// Build command from provider-specific args
+			if len(args) == 1 {
+				c = exec.Command(args[0])
+			} else {
+				c = exec.Command(args[0], args[1:]...)
+			}
+		} else {
+			// Fallback to original GitHub command
+			c = exec.Command(
+				"gh",
+				"pr",
+				"checks",
+				"--watch",
+				"--fail-fast",
+				fmt.Sprint(prNumber),
+				"-R",
+				repoNameWithOwner,
+			)
+		}
 
 		var outb, errb bytes.Buffer
 		c.Stdout = &outb

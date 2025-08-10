@@ -23,6 +23,16 @@ type GitProvider interface {
 	SupportsPullRequests() bool
 	SupportsIssues() bool
 	GetAuthInfo() (AuthInfo, error)
+	
+	// Command operations - return command arguments for execution
+	GetDiffCommand(prNumber int, repoNameWithOwner string) ([]string, error)
+	GetCheckoutCommand(prNumber int, repoNameWithOwner string) ([]string, error)
+	GetMergeCommand(prNumber int, repoNameWithOwner string) ([]string, error)
+	GetCloseCommand(prNumber int, repoNameWithOwner string) ([]string, error)
+	GetReopenCommand(prNumber int, repoNameWithOwner string) ([]string, error)
+	GetReadyCommand(prNumber int, repoNameWithOwner string) ([]string, error)
+	GetUpdateCommand(prNumber int, repoNameWithOwner string) ([]string, error)
+	GetWatchChecksCommand(prNumber int, repoNameWithOwner string) ([]string, error)
 }
 
 type AuthInfo struct {

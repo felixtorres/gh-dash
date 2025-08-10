@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dlvhdr/gh-dash/v4/data"
 	"github.com/dlvhdr/gh-dash/v4/ui/common"
 	"github.com/dlvhdr/gh-dash/v4/ui/constants"
 	"github.com/dlvhdr/gh-dash/v4/ui/context"
@@ -37,19 +38,45 @@ func (m *Model) checkout() (tea.Cmd, error) {
 	}
 	startCmd := m.Ctx.StartTask(task)
 	return tea.Batch(startCmd, func() tea.Msg {
-		c := exec.Command(
-			"gh",
-			"pr",
-			"checkout",
-			fmt.Sprint(m.GetCurrRow().GetNumber()),
-		)
+		// Get the current provider and use provider-specific checkout command
+		provider := data.GetCurrentProvider()
+		var c *exec.Cmd
+		var err error
+		
+		if provider != nil {
+			// Use provider-specific command
+			args, cmdErr := provider.GetCheckoutCommand(prNumber, repoName)
+			if cmdErr != nil {
+				return constants.TaskFinishedMsg{TaskId: taskId, Err: cmdErr}
+			}
+			
+			if len(args) == 0 {
+				return constants.TaskFinishedMsg{TaskId: taskId, Err: fmt.Errorf("checkout command not available for this provider")}
+			}
+			
+			// Build command from provider-specific args
+			if len(args) == 1 {
+				c = exec.Command(args[0])
+			} else {
+				c = exec.Command(args[0], args[1:]...)
+			}
+		} else {
+			// Fallback to original GitHub command
+			c = exec.Command(
+				"gh",
+				"pr",
+				"checkout",
+				fmt.Sprint(prNumber),
+			)
+		}
+		
 		userHomeDir, _ := os.UserHomeDir()
 		if strings.HasPrefix(repoPath, "~") {
 			repoPath = strings.Replace(repoPath, "~", userHomeDir, 1)
 		}
 
 		c.Dir = repoPath
-		err := c.Run()
+		err = c.Run()
 		return constants.TaskFinishedMsg{TaskId: taskId, Err: err}
 	}), nil
 }

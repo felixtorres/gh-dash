@@ -230,11 +230,14 @@ func (p *AzureDevOpsProvider) setAuthHeader(req *http.Request) {
 
 func (p *AzureDevOpsProvider) convertAzurePRToData(azurePR AzurePullRequest) PullRequestData {
 	// Map Azure DevOps states to GitHub-like states
-	state := "open"
-	if azurePR.Status == "completed" {
+	var state string
+	switch azurePR.Status {
+	case "completed":
 		state = "merged"
-	} else if azurePR.Status == "abandoned" {
+	case "abandoned":
 		state = "closed"
+	default:
+		state = "open"
 	}
 
 	return PullRequestData{
@@ -323,4 +326,61 @@ func (d AzureDevOpsItemData) GetUpdatedAt() time.Time {
 
 func (d AzureDevOpsItemData) GetCreatedAt() time.Time {
 	return d.createdAt
+}
+
+// Command operations for Azure DevOps PRs
+func (p *AzureDevOpsProvider) GetDiffCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// For Azure DevOps, we use the web URL approach since there's no native CLI diff command
+	// We'll open the PR diff page in the browser
+	return []string{"open", fmt.Sprintf("%s/%s/_git/%s/pullrequest/%d?_a=files", 
+		p.baseURL, p.organization, p.project, prNumber)}, nil
+}
+
+func (p *AzureDevOpsProvider) GetCheckoutCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// Azure DevOps doesn't have a direct checkout command like gh
+	// We'll need to implement this using git commands
+	// For now, return an error indicating this isn't supported yet
+	return nil, fmt.Errorf("checkout command not yet implemented for Azure DevOps - use git fetch and git checkout manually")
+}
+
+func (p *AzureDevOpsProvider) GetMergeCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// Azure DevOps doesn't have a CLI merge command
+	// Open the PR page where user can manually merge
+	return []string{"open", fmt.Sprintf("%s/%s/_git/%s/pullrequest/%d", 
+		p.baseURL, p.organization, p.project, prNumber)}, nil
+}
+
+func (p *AzureDevOpsProvider) GetCloseCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// Azure DevOps doesn't have a CLI close command
+	// Open the PR page where user can manually close
+	return []string{"open", fmt.Sprintf("%s/%s/_git/%s/pullrequest/%d", 
+		p.baseURL, p.organization, p.project, prNumber)}, nil
+}
+
+func (p *AzureDevOpsProvider) GetReopenCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// Azure DevOps doesn't have a CLI reopen command
+	// Open the PR page where user can manually reopen
+	return []string{"open", fmt.Sprintf("%s/%s/_git/%s/pullrequest/%d", 
+		p.baseURL, p.organization, p.project, prNumber)}, nil
+}
+
+func (p *AzureDevOpsProvider) GetReadyCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// Azure DevOps doesn't have a CLI ready command
+	// Open the PR page where user can manually mark as ready
+	return []string{"open", fmt.Sprintf("%s/%s/_git/%s/pullrequest/%d", 
+		p.baseURL, p.organization, p.project, prNumber)}, nil
+}
+
+func (p *AzureDevOpsProvider) GetUpdateCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// Azure DevOps doesn't have a CLI update command
+	// Open the PR page where user can manually update
+	return []string{"open", fmt.Sprintf("%s/%s/_git/%s/pullrequest/%d", 
+		p.baseURL, p.organization, p.project, prNumber)}, nil
+}
+
+func (p *AzureDevOpsProvider) GetWatchChecksCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	// Azure DevOps doesn't have a CLI watch checks command
+	// Open the PR page where user can monitor builds/checks
+	return []string{"open", fmt.Sprintf("%s/%s/_git/%s/pullrequest/%d", 
+		p.baseURL, p.organization, p.project, prNumber)}, nil
 }

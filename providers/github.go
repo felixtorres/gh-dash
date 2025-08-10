@@ -204,3 +204,93 @@ func makePullRequestsQuery(query string) string {
 func makeIssuesQuery(query string) string {
 	return fmt.Sprintf("is:issue %s sort:updated", query)
 }
+
+// Command operations for GitHub PRs using gh CLI
+func (p *GitHubProvider) GetDiffCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"diff",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}
+
+func (p *GitHubProvider) GetCheckoutCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"checkout",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}
+
+func (p *GitHubProvider) GetMergeCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"merge",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}
+
+func (p *GitHubProvider) GetCloseCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"close",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}
+
+func (p *GitHubProvider) GetReopenCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"reopen",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}
+
+func (p *GitHubProvider) GetReadyCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"ready",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}
+
+func (p *GitHubProvider) GetUpdateCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"update-branch",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}
+
+func (p *GitHubProvider) GetWatchChecksCommand(prNumber int, repoNameWithOwner string) ([]string, error) {
+	return []string{
+		"gh",
+		"pr",
+		"checks",
+		"--watch",
+		fmt.Sprint(prNumber),
+		"-R",
+		repoNameWithOwner,
+	}, nil
+}

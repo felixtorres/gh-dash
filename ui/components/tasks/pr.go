@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/log"
 
 	"github.com/dlvhdr/gh-dash/v4/data"
+	"github.com/dlvhdr/gh-dash/v4/providers"
 	"github.com/dlvhdr/gh-dash/v4/ui/constants"
 	"github.com/dlvhdr/gh-dash/v4/ui/context"
 	"github.com/dlvhdr/gh-dash/v4/utils"
@@ -46,6 +47,70 @@ type GitHubTask struct {
 	StartText    string
 	FinishedText string
 	Msg          func(c *exec.Cmd, err error) tea.Msg
+}
+
+// Helper function to execute provider-aware commands
+func fireProviderTask(ctx *context.ProgramContext, task GitHubTask, cmdFunc func(providers.GitProvider, int, string) ([]string, error), prNumber int, repoNameWithOwner string) tea.Cmd {
+	start := context.Task{
+		Id:           task.Id,
+		StartText:    task.StartText,
+		FinishedText: task.FinishedText,
+		State:        context.TaskStart,
+		Error:        nil,
+	}
+
+	startCmd := ctx.StartTask(start)
+	return tea.Batch(startCmd, func() tea.Msg {
+		provider := data.GetCurrentProvider()
+		var c *exec.Cmd
+		var err error
+		
+		if provider != nil {
+			// Use provider-specific command
+			args, cmdErr := cmdFunc(provider, prNumber, repoNameWithOwner)
+			if cmdErr != nil {
+				return constants.TaskFinishedMsg{
+					TaskId:      task.Id,
+					SectionId:   task.Section.Id,
+					SectionType: task.Section.Type,
+					Err:         cmdErr,
+					Msg:         task.Msg(nil, cmdErr),
+				}
+			}
+			
+			if len(args) == 0 {
+				err = fmt.Errorf("no command available for this provider")
+				return constants.TaskFinishedMsg{
+					TaskId:      task.Id,
+					SectionId:   task.Section.Id,
+					SectionType: task.Section.Type,
+					Err:         err,
+					Msg:         task.Msg(nil, err),
+				}
+			}
+			
+			// Build command from provider-specific args
+			if len(args) == 1 {
+				c = exec.Command(args[0])
+			} else {
+				c = exec.Command(args[0], args[1:]...)
+			}
+			log.Debug("Running provider task", "cmd", strings.Join(args, " "), "provider", provider.GetType())
+		} else {
+			// Fallback to original GitHub command
+			c = exec.Command("gh", task.Args...)
+			log.Debug("Running GitHub task (fallback)", "cmd", "gh "+strings.Join(task.Args, " "))
+		}
+
+		err = c.Run()
+		return constants.TaskFinishedMsg{
+			TaskId:      task.Id,
+			SectionId:   task.Section.Id,
+			SectionType: task.Section.Type,
+			Err:         err,
+			Msg:         task.Msg(c, err),
+		}
+	})
 }
 
 func fireTask(ctx *context.ProgramContext, task GitHubTask) tea.Cmd {
@@ -95,7 +160,7 @@ func OpenBranchPR(ctx *context.ProgramContext, section SectionIdentifier, branch
 
 func ReopenPR(ctx *context.ProgramContext, section SectionIdentifier, pr data.RowData) tea.Cmd {
 	prNumber := pr.GetNumber()
-	return fireTask(ctx, GitHubTask{
+	return fireProviderTask(ctx, GitHubTask{
 		Id: buildTaskId("pr_reopen", prNumber),
 		Args: []string{
 			"pr",
@@ -113,12 +178,14 @@ func ReopenPR(ctx *context.ProgramContext, section SectionIdentifier, pr data.Ro
 				IsClosed: utils.BoolPtr(false),
 			}
 		},
-	})
+	}, func(p providers.GitProvider, num int, repo string) ([]string, error) {
+		return p.GetReopenCommand(num, repo)
+	}, prNumber, pr.GetRepoNameWithOwner())
 }
 
 func ClosePR(ctx *context.ProgramContext, section SectionIdentifier, pr data.RowData) tea.Cmd {
 	prNumber := pr.GetNumber()
-	return fireTask(ctx, GitHubTask{
+	return fireProviderTask(ctx, GitHubTask{
 		Id: buildTaskId("pr_close", prNumber),
 		Args: []string{
 			"pr",
@@ -136,12 +203,14 @@ func ClosePR(ctx *context.ProgramContext, section SectionIdentifier, pr data.Row
 				IsClosed: utils.BoolPtr(true),
 			}
 		},
-	})
+	}, func(p providers.GitProvider, num int, repo string) ([]string, error) {
+		return p.GetCloseCommand(num, repo)
+	}, prNumber, pr.GetRepoNameWithOwner())
 }
 
 func PRReady(ctx *context.ProgramContext, section SectionIdentifier, pr data.RowData) tea.Cmd {
 	prNumber := pr.GetNumber()
-	return fireTask(ctx, GitHubTask{
+	return fireProviderTask(ctx, GitHubTask{
 		Id: buildTaskId("pr_ready", prNumber),
 		Args: []string{
 			"pr",
@@ -159,7 +228,9 @@ func PRReady(ctx *context.ProgramContext, section SectionIdentifier, pr data.Row
 				ReadyForReview: utils.BoolPtr(true),
 			}
 		},
-	})
+	}, func(p providers.GitProvider, num int, repo string) ([]string, error) {
+		return p.GetReadyCommand(num, repo)
+	}, prNumber, pr.GetRepoNameWithOwner())
 }
 
 func MergePR(ctx *context.ProgramContext, section SectionIdentifier, pr data.RowData) tea.Cmd {
@@ -241,7 +312,7 @@ func CreatePR(ctx *context.ProgramContext, section SectionIdentifier, branchName
 
 func UpdatePR(ctx *context.ProgramContext, section SectionIdentifier, pr data.RowData) tea.Cmd {
 	prNumber := pr.GetNumber()
-	return fireTask(ctx, GitHubTask{
+	return fireProviderTask(ctx, GitHubTask{
 		Id: buildTaskId("pr_update", prNumber),
 		Args: []string{
 			"pr",
@@ -259,5 +330,7 @@ func UpdatePR(ctx *context.ProgramContext, section SectionIdentifier, pr data.Ro
 				IsClosed: utils.BoolPtr(true),
 			}
 		},
-	})
+	}, func(p providers.GitProvider, num int, repo string) ([]string, error) {
+		return p.GetUpdateCommand(num, repo)
+	}, prNumber, pr.GetRepoNameWithOwner())
 }
